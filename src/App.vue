@@ -754,6 +754,24 @@
       >
         {{ archiveToastMessage }}
       </div>
+
+      <!-- 弹出提示 (推迟成功 - 相对页面固定位置) -->
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform -translate-y-2 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform -translate-y-2 opacity-0"
+      >
+        <div
+          v-if="snoozeToastVisible"
+          class="fixed top-64 left-1/2 -translate-x-1/2 bg-[#22C55E]/90 text-white border border-green-400/50 px-5 py-2.5 rounded-full shadow-[0_4px_20px_rgba(34,197,94,0.3)] backdrop-blur-md z-50 flex items-center text-sm font-medium"
+        >
+          <Check :size="16" class="mr-2" />
+          <span>{{ snoozeToastMessage }}</span>
+        </div>
+      </transition>
     </main>
 
     <!-- API Settings Modal -->
@@ -1073,9 +1091,11 @@ const providers = [
   { id: 'gemini', label: 'Gemini (OpenAI API)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', defaultModel: 'gemini-1.5-pro' },
   { id: 'zhipu', label: 'Zhipu AI', baseUrl: 'https://open.bigmodel.cn/api/paas/v4', defaultModel: 'glm-4' },
   { id: 'doubao', label: 'Doubao', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', defaultModel: 'ep-xxx' },
+  { id: 'volcengine', label: '火山引擎 (Volcengine)', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3', defaultModel: 'ep-xxx' },
   { id: 'qwen', label: 'Qwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', defaultModel: 'qwen-turbo' },
   { id: 'siliconflow', label: 'SiliconFlow', baseUrl: 'https://api.siliconflow.cn/v1', defaultModel: 'deepseek-ai/DeepSeek-V3' },
   { id: 'groq', label: 'Groq', baseUrl: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.3-70b-versatile' },
+  { id: 'xiaomi', label: '小米 (Xiaomi)', baseUrl: 'https://api.xiaomimimo.com/v1', defaultModel: 'mi-lm' },
   { id: 'custom', label: 'Custom', baseUrl: '', defaultModel: '' },
 ];
 
@@ -1088,6 +1108,9 @@ const editingText = ref('');
 
 const archiveToastVisible = ref(false);
 const archiveToastMessage = ref('');
+
+const snoozeToastVisible = ref(false);
+const snoozeToastMessage = ref('');
 
 // 示例数据生成
 const seedDemoLoading = ref(false);
@@ -1919,6 +1942,10 @@ async function snoozeTodo(todo, days) {
     todo.target_date = targetStr;
     todo.updated_at = ts;
     activeTodoSnoozePopoverId.value = null;
+    
+    snoozeToastMessage.value = '已转移至未来规划';
+    snoozeToastVisible.value = true;
+    setTimeout(() => { snoozeToastVisible.value = false; }, 2000);
   } catch (e) {
     console.error('snoozeTodo failed:', e);
   }
