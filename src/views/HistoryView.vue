@@ -1,40 +1,30 @@
 <template>
-  <div class="w-full max-w-2xl px-6">
-    <header class="mb-12">
-      <h1 class="text-3xl font-semibold text-white mb-2 tracking-tight">历史回顾</h1>
-      <p class="text-gray-500 text-sm font-light">查看所有已完成的任务</p>
+  <div class="view-container">
+    <header class="view-header">
+      <h1 class="view-title">历史回顾</h1>
+      <p class="view-subtitle">查看所有已完成的任务</p>
     </header>
-
-    <div v-if="historyGroups.length === 0" class="flex flex-col items-center justify-center py-20 text-gray-600">
-      <Archive :size="40" class="mb-4 opacity-30" />
-      <p class="text-sm">暂无历史记录</p>
+    <div v-if="historyGroups.length === 0" class="empty-state">
+      <div class="empty-state__icon"><Archive :size="40" /></div>
+      <p class="empty-state__text">暂无历史记录</p>
     </div>
-
-    <div v-for="group in historyGroups" :key="group.date" class="mb-10">
-      <div class="flex items-center mb-4">
-        <div class="flex-1 h-[1px] bg-white/5"></div>
-        <span class="px-4 text-xs text-gray-500 font-medium">{{ group.label }}</span>
-        <div class="flex-1 h-[1px] bg-white/5"></div>
+    <div v-for="group in historyGroups" :key="group.date" style="margin-bottom: 40px;">
+      <div class="date-divider">
+        <div class="section-divider__line"></div>
+        <span class="date-divider__label">{{ group.label }}</span>
+        <div class="section-divider__line"></div>
       </div>
-      <div class="space-y-2">
-        <div
-          v-for="todo in group.todos" :key="todo.id"
-          class="flex items-center space-x-4 px-4 py-3 rounded-xl"
-          :class="todo.completed ? 'opacity-40' : 'bg-white/[0.02] border border-white/[0.05]'"
-        >
-          <div
-            class="w-5 h-5 rounded flex items-center justify-center"
-            :class="todo.completed ? 'bg-purple-600/80' : 'border-2 border-white/20'"
-          >
-            <Check v-if="todo.completed" :size="12" class="text-white" />
+      <div class="todo-list">
+        <div v-for="todo in group.todos" :key="todo.id" :class="['history-item', todo.completed ? 'history-item--done' : 'history-item--active']">
+          <div :class="['history-tick', todo.completed ? 'history-tick--checked' : 'history-tick--unchecked']">
+            <Check v-if="todo.completed" :size="12" color="white" />
           </div>
-          <span class="flex-1 text-sm" :class="todo.completed ? 'line-through text-gray-400 font-light' : 'text-gray-300'">{{ todo.text }}</span>
+          <span :class="['history-text', todo.completed ? 'history-text--done' : 'history-text--active']">{{ todo.text }}</span>
         </div>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
 import { computed } from 'vue';
 import { Archive, Check } from 'lucide-vue-next';
@@ -48,8 +38,6 @@ const historyGroups = computed(() => {
     if (!groups[date]) groups[date] = [];
     groups[date].push(t);
   }
-  return Object.keys(groups)
-    .sort((a, b) => b.localeCompare(a))
-    .map(date => ({ date, label: formatDateLabel(date), todos: groups[date] }));
+  return Object.keys(groups).sort((a,b) => b.localeCompare(a)).map(date => ({ date, label: formatDateLabel(date), todos: groups[date] }));
 });
 </script>

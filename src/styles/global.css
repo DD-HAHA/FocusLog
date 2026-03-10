@@ -1,0 +1,22 @@
+/* ─── FocusLog Global Styles ──────────────────────────────────
+   No Tailwind dependency. All utility classes are pre-generated
+   from Tailwind CLI output and stored in generated.css.
+   Add any custom / override styles below.
+──────────────────────────────────────────────────────────────── */
+
+/* Custom scrollbar suppression */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Base reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}

@@ -1,30 +1,18 @@
 <template>
-  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center" @click.self="isDailyPromptOpen = false">
-    <div class="bg-[#1A1A1A] border border-white/10 rounded-2xl p-8 w-[500px] shadow-2xl">
-      <h2 class="text-lg font-bold text-white mb-4 flex items-center space-x-2">
-        <Sparkles :size="18" class="text-orange-400" />
-        <span>AI 日志提示词</span>
-      </h2>
-      <p class="text-[12px] text-gray-400 mb-4 leading-relaxed">
-        自定义生成「今日总结」时的系统提示词。留空则使用默认范本。<br>
-        支持占位符：<code class="text-purple-400">{date}</code>, <code class="text-purple-400">{completedCount}</code>, <code class="text-purple-400">{todosText}</code>
-      </p>
-      <textarea
-        v-model="customDailyPromptInput"
-        placeholder="留空以使用预设提示词..."
-        class="w-full min-h-[180px] bg-white/[0.03] border border-white/10 rounded-lg p-4 text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/10 transition-all font-mono leading-relaxed resize-y"
-      ></textarea>
-      <div class="flex justify-end space-x-3 mt-6">
-        <button @click="isDailyPromptOpen = false" class="px-5 py-2.5 text-gray-400 hover:text-white text-sm transition-colors">取消</button>
-        <button @click="saveDailyPrompt(showToast)" class="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors">保存</button>
+  <div class="modal-overlay" @click.self="isDailyPromptOpen = false">
+    <div class="modal modal--lg">
+      <h2 class="modal__title"><Sparkles :size="18" color="var(--orange-400)" /><span>AI 日志提示词</span></h2>
+      <p class="modal__desc">自定义生成「今日总结」时的系统提示词。留空则使用默认范本。<br>支持占位符：<code style="color:var(--purple-400)">{date}</code>, <code style="color:var(--purple-400)">{completedCount}</code>, <code style="color:var(--purple-400)">{todosText}</code></p>
+      <textarea v-model="customDailyPromptInput" placeholder="留空以使用预设提示词..." class="form-textarea"></textarea>
+      <div class="modal__footer">
+        <button @click="isDailyPromptOpen = false" class="btn-text">取消</button>
+        <button @click="saveDailyPrompt(showToast)" class="btn-purple">保存</button>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
 import { Sparkles } from 'lucide-vue-next';
 import { isDailyPromptOpen, customDailyPromptInput, saveDailyPrompt } from '../../composables/useSettings.js';
-
 defineProps({ showToast: { type: Function, required: true } });
 </script>
