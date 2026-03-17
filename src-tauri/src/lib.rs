@@ -1,6 +1,7 @@
 use std::sync::Mutex;
 use tauri::State;
 use serde::{Deserialize, Serialize};
+use base64::Engine;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct WebDavConfig {
@@ -83,9 +84,9 @@ async fn restore_from_webdav(state: State<'_, WebDavState>) -> Result<String, St
 
 #[tauri::command]
 fn send_notification(title: String, body: String) -> Result<(), String> {
-    use tauri_plugin_notification::NotificationExt;
+    use tauri_plugin_notification::Notification;
     
-    let result = tauri_plugin_notification::Notification::new("com.focuslog.desktop")
+    let result = Notification::new("com.focuslog.desktop")
         .title(&title)
         .body(&body)
         .show();
