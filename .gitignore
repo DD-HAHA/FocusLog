@@ -14,3 +14,6 @@ build/
 
 # Logs
 *.log
+
+# Local SQLite database (do not commit)
+focus_log.db

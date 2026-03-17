@@ -28,8 +28,47 @@ export function openDataSyncModal() {
   isDataSyncModalOpen.value = true;
 }
 
-export function openWebDavSettings() {
+export async function loadWebDavSettingsFromDb() {
+  if (!db.value) return;
+  try {
+    const rows = await db.value.select('SELECT * FROM settings WHERE id = 1');
+    if (!rows.length) return;
+
+    const row = rows[0];
+    webdavUrl.value = row.webdav_url || '';
+    webdavUsername.value = row.webdav_username || '';
+    webdavPassword.value = row.webdav_password || '';
+    webdavPath.value = row.webdav_path || '/focuslog-backup.json';
+  } catch (e) {
+    console.error('Load WebDAV settings failed:', e);
+  }
+}
+
+async function ensureWebDavConfigInBackend() {
+  if (!db.value) return;
+
+  try {
+    const rows = await db.value.select('SELECT * FROM settings WHERE id = 1');
+    if (!rows.length) return;
+
+    const row = rows[0];
+    const config = {
+      url: (row.webdav_url || '').trim(),
+      username: (row.webdav_username || '').trim(),
+      password: row.webdav_password || '',
+      path: (row.webdav_path || '/focuslog-backup.json').trim() || '/focuslog-backup.json',
+    };
+
+    if (!config.url || !config.username || !config.password) return;
+    await invoke('set_webdav_config', { config });
+  } catch (e) {
+    console.error('Ensure WebDAV backend config failed:', e);
+  }
+}
+
+export async function openWebDavSettings() {
   isWebDavSettingsOpen.value = true;
+  await loadWebDavSettingsFromDb();
 }
 
 export async function exportToJson(showToast) {
@@ -163,6 +202,14 @@ export async function saveWebDavSettings(showToast) {
       path: webdavPath.value.trim() || '/focuslog-backup.json',
     };
     
+    if (db.value) {
+      await db.value.execute(
+        `INSERT OR REPLACE INTO settings (id, webdav_url, webdav_username, webdav_password, webdav_path)
+         VALUES (1, ?, ?, ?, ?)`,
+        [config.url, config.username, config.password, config.path]
+      );
+    }
+
     await invoke('set_webdav_config', { config });
     showToast('WebDAV ' + t('dataSync.settings.save') + ' OK', 2000);
     isWebDavSettingsOpen.value = false;
@@ -178,6 +225,8 @@ export async function backupToWebDav(showToast) {
     isSyncing.value = true;
     syncStatus.value = t('dataSync.status.preparing');
     
+    await ensureWebDavConfigInBackend();
+
     const todos = await db.value.select('SELECT * FROM todos');
     const tags = await db.value.select('SELECT * FROM tags');
     const todoTags = await db.value.select('SELECT * FROM todo_tags');
@@ -215,6 +264,8 @@ export async function restoreFromWebDav(showToast) {
     isSyncing.value = true;
     syncStatus.value = t('dataSync.status.downloading');
     
+    await ensureWebDavConfigInBackend();
+
     const dataStr = await invoke('restore_from_webdav');
     const data = JSON.parse(dataStr);
     

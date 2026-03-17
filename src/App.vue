@@ -91,7 +91,7 @@ async function initDB() {
     await openDb();
     const d = db.value;
     await d.execute(`CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, completed INTEGER NOT NULL DEFAULT 0, from_yesterday INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)`);
-    await d.execute(`CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY DEFAULT 1, api_key TEXT DEFAULT '', api_provider TEXT DEFAULT 'deepseek', api_base_url TEXT DEFAULT 'https://api.deepseek.com', api_model TEXT DEFAULT 'deepseek-chat', custom_daily_prompt TEXT DEFAULT '', custom_review_prompt TEXT DEFAULT '')`);
+    await d.execute(`CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY DEFAULT 1, api_key TEXT DEFAULT '', api_provider TEXT DEFAULT 'deepseek', api_base_url TEXT DEFAULT 'https://api.deepseek.com', api_model TEXT DEFAULT 'deepseek-chat', custom_daily_prompt TEXT DEFAULT '', custom_review_prompt TEXT DEFAULT '', auto_backup_enabled INTEGER DEFAULT 0, auto_backup_interval TEXT DEFAULT 'daily', auto_backup_mode TEXT DEFAULT 'overwrite', auto_backup_retention INTEGER DEFAULT 5, last_backup_time TEXT, theme_mode TEXT DEFAULT 'auto', dark_start_time TEXT DEFAULT '22:00', dark_end_time TEXT DEFAULT '07:00', webdav_url TEXT DEFAULT '', webdav_username TEXT DEFAULT '', webdav_password TEXT DEFAULT '', webdav_path TEXT DEFAULT '/focuslog-backup.json')`);
     await d.execute(`CREATE TABLE IF NOT EXISTS archives (id INTEGER PRIMARY KEY AUTOINCREMENT, date TEXT NOT NULL, content TEXT NOT NULL, created_at TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)`);
     await d.execute(`CREATE TABLE IF NOT EXISTS tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, color TEXT NOT NULL, is_demo INTEGER NOT NULL DEFAULT 0)`);
     await d.execute(`CREATE TABLE IF NOT EXISTS todo_tags (todo_id INTEGER NOT NULL, tag_id INTEGER NOT NULL)`);
@@ -118,6 +118,10 @@ async function initDB() {
       `ALTER TABLE settings ADD COLUMN theme_mode TEXT DEFAULT 'auto'`,
       `ALTER TABLE settings ADD COLUMN dark_start_time TEXT DEFAULT '22:00'`,
       `ALTER TABLE settings ADD COLUMN dark_end_time TEXT DEFAULT '07:00'`,
+      `ALTER TABLE settings ADD COLUMN webdav_url TEXT DEFAULT ''`,
+      `ALTER TABLE settings ADD COLUMN webdav_username TEXT DEFAULT ''`,
+      `ALTER TABLE settings ADD COLUMN webdav_password TEXT DEFAULT ''`,
+      `ALTER TABLE settings ADD COLUMN webdav_path TEXT DEFAULT '/focuslog-backup.json'`,
     ];
     for (const sql of migrations) { try { await d.execute(sql); } catch (_) {} }
     dbReady.value = true;
