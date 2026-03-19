@@ -23,7 +23,6 @@
           <input v-model="webdavPath" type="text" placeholder="/focuslog-backup.json" />
         </div>
         <div class="modal__footer">
-          <button type="button" @click="close">{{ t('dataSync.settings.cancel') }}</button>
           <button type="submit" class="btn--primary">{{ t('dataSync.settings.save') }}</button>
         </div>
       </form>

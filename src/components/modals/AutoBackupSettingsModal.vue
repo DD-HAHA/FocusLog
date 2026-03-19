@@ -65,7 +65,6 @@
         </div>
       </div>
       <div class="modal__footer">
-        <button type="button" @click="close">{{ t('dataSync.settings.cancel') }}</button>
         <button type="button" @click="handleSave" class="btn--primary">{{ t('dataSync.settings.save') }}</button>
       </div>
     </div>

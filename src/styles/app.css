@@ -64,9 +64,9 @@ html.light {
   --text-white: #111827;
   --text-200: #1f2937;
   --text-300: #374151;
-  --text-400: #FFFFFF;
-  --text-500: #6b7280;
-  --text-600: #9ca3af;
+  --text-400: #374151;
+  --text-500: #4b5563;
+  --text-600: #6b7280;
   --purple-400: #7c3aed;
   --purple-500: #6d28d9;
   --purple-600: #5b21b6;
@@ -1528,6 +1528,36 @@ html.light .icon-btn:hover {
   width: 500px;
 }
 
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modal__close {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-m);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--text-400);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.modal__close:hover {
+  color: var(--text-white);
+  border-color: var(--border-l);
+  background: var(--bg-s5);
+}
+
 .modal__title {
   font-size: 1.125rem;
   font-weight: 700;
@@ -1536,6 +1566,10 @@ html.light .icon-btn:hover {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.modal__header .modal__title {
+  margin: 0;
 }
 
 .modal__title--mb-sm {
@@ -1807,7 +1841,7 @@ html.light .icon-btn:hover {
   padding: 8px 16px;
   border-radius: var(--r-full);
   backdrop-filter: blur(8px);
-  z-index: 50;
+  z-index: 80;
   white-space: nowrap;
 }
 
@@ -1823,7 +1857,7 @@ html.light .icon-btn:hover {
   border-radius: var(--r-full);
   box-shadow: 0 4px 20px rgba(34, 197, 94, .3);
   backdrop-filter: blur(8px);
-  z-index: 50;
+  z-index: 80;
   display: flex;
   align-items: center;
   font-size: .875rem;

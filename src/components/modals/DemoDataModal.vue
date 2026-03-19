@@ -1,7 +1,10 @@
 <template>
   <div class="modal-overlay" @click.self="isDemoDataModalOpen = false">
     <div class="modal modal--sm">
-      <h2 class="modal__title modal__title--mb-sm"><LayoutDashboard :size="18" color="var(--green-500)" /><span>体验数据</span></h2>
+      <header class="modal__header">
+        <h2 class="modal__title modal__title--mb-sm"><LayoutDashboard :size="18" color="var(--green-500)" /><span>体验数据</span></h2>
+        <button type="button" class="modal__close" @click="isDemoDataModalOpen = false" aria-label="关闭">&times;</button>
+      </header>
       <p class="modal__desc">一键生成过去半年的 PM 示例任务与存档。</p>
       <div style="display:flex;flex-direction:column;gap:16px;">
         <button type="button" :disabled="seedDemoLoading || clearDemoLoading" @click="seedDemoData" class="demo-btn demo-btn--seed">
@@ -11,9 +14,6 @@
           {{ clearDemoLoading ? '清除中...' : '一键清除体验数据' }}
         </button>
         <p v-if="seedDemoMessage" :class="['demo-msg', seedDemoMessage.includes('失败') ? 'demo-msg--err' : 'demo-msg--ok']">{{ seedDemoMessage }}</p>
-      </div>
-      <div class="modal__footer modal__footer--full">
-        <button @click="isDemoDataModalOpen = false" class="btn-text" style="width:100%;background:var(--bg-s5);border-radius:var(--r-lg);text-align:center;">关闭</button>
       </div>
     </div>
   </div>

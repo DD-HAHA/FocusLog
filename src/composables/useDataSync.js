@@ -1,7 +1,8 @@
 import { ref } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { db } from './useDb.js';
-import { open } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
+import { documentDir, join } from '@tauri-apps/api/path';
 import i18n from '../locales/index.js';
 
 // 使用 i18n.global.t 避免在模块顶层调用 useI18n（必须在 setup 中）
@@ -28,13 +29,46 @@ export function openDataSyncModal() {
   isDataSyncModalOpen.value = true;
 }
 
+function normalizeLegacySettings(rows) {
+  const map = Object.fromEntries((rows || []).map((r) => [r.key, r.value]));
+  return {
+    api_key: map.api_key || map.deepseek_api_key || '',
+    api_provider: map.api_provider || 'deepseek',
+    api_base_url: map.api_base_url || 'https://api.deepseek.com',
+    api_model: map.api_model || 'deepseek-chat',
+    custom_daily_prompt: map.custom_daily_prompt || '',
+    custom_review_prompt: map.custom_review_prompt || '',
+    webdav_url: map.webdav_url || '',
+    webdav_username: map.webdav_username || '',
+    webdav_password: map.webdav_password || '',
+    webdav_path: map.webdav_path || '/focuslog-backup.json',
+  };
+}
+
+async function getSettingsRow() {
+  if (!db.value) return null;
+  let firstError = null;
+  try {
+    const rows = await db.value.select('SELECT * FROM settings WHERE id = 1');
+    return rows.length ? rows[0] : null;
+  } catch (e) {
+    firstError = e;
+  }
+
+  // Fallback for legacy key/value schema (without id column).
+  try {
+    const legacyRows = await db.value.select('SELECT key, value FROM settings');
+    return legacyRows.length ? normalizeLegacySettings(legacyRows) : null;
+  } catch (legacyErr) {
+    throw firstError || legacyErr;
+  }
+}
+
 export async function loadWebDavSettingsFromDb() {
   if (!db.value) return;
   try {
-    const rows = await db.value.select('SELECT * FROM settings WHERE id = 1');
-    if (!rows.length) return;
-
-    const row = rows[0];
+    const row = await getSettingsRow();
+    if (!row) return;
     webdavUrl.value = row.webdav_url || '';
     webdavUsername.value = row.webdav_username || '';
     webdavPassword.value = row.webdav_password || '';
@@ -48,10 +82,8 @@ async function ensureWebDavConfigInBackend() {
   if (!db.value) return;
 
   try {
-    const rows = await db.value.select('SELECT * FROM settings WHERE id = 1');
-    if (!rows.length) return;
-
-    const row = rows[0];
+    const row = await getSettingsRow();
+    if (!row) return;
     const config = {
       url: (row.webdav_url || '').trim(),
       username: (row.webdav_username || '').trim(),
@@ -74,10 +106,11 @@ export async function openWebDavSettings() {
 export async function exportToJson(showToast) {
   if (!db.value) return;
   try {
-    const filePath = await open({
+    const defaultExportPath = await join(await documentDir(), 'focuslog-backup.json');
+    const filePath = await save({
       title: 'Export Data',
       filters: [{ name: 'JSON', extensions: ['json'] }],
-      defaultPath: 'focuslog-backup.json',
+      defaultPath: defaultExportPath,
     });
     
     if (filePath) {
@@ -85,7 +118,7 @@ export async function exportToJson(showToast) {
       const tags = await db.value.select('SELECT * FROM tags');
       const todoTags = await db.value.select('SELECT * FROM todo_tags');
       const archives = await db.value.select('SELECT * FROM archives');
-      const settings = await db.value.select('SELECT * FROM settings WHERE id = 1');
+      const settingsRow = await getSettingsRow();
       
       const data = {
         version: '0.1.2',
@@ -94,17 +127,29 @@ export async function exportToJson(showToast) {
         tags,
         todoTags,
         archives,
-        settings: settings.length > 0 ? settings[0] : null,
+        settings: settingsRow,
       };
       
-      const { writeFile } = await import('@tauri-apps/plugin-fs');
-      await writeFile(filePath, JSON.stringify(data, null, 2));
-      showToast(t('dataSync.messages.exportSuccess'), 2000);
-      sendNotification(t('dataSync.notifications.exportSuccess'), t('dataSync.notifications.exportSuccessDetail'));
+      const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+      const payload = JSON.stringify(data, null, 2);
+      try {
+        await writeTextFile(filePath, payload);
+        showToast(t('dataSync.messages.exportSuccess'), 2000);
+        sendNotification(t('dataSync.notifications.exportSuccess'), t('dataSync.notifications.exportSuccessDetail'));
+      } catch (writeErr) {
+        // Fallback to a known writable location to avoid silent export failure.
+        const fallbackPath = await join(await documentDir(), 'focuslog-backup.json');
+        await writeTextFile(fallbackPath, payload);
+        const writeErrMsg = writeErr?.message || String(writeErr);
+        syncStatus.value = `${t('dataSync.status.failed')}: ${writeErrMsg}`;
+        showToast(`选定位置写入失败，已保存到文稿目录：${fallbackPath}`, 3500);
+      }
     }
   } catch (e) {
     console.error('Export failed:', e);
-    showToast(t('dataSync.status.failed') + ': ' + e.message, 3000);
+    const msg = e?.message || String(e);
+    syncStatus.value = t('dataSync.status.failed') + ': ' + msg;
+    showToast(t('dataSync.status.failed') + ': ' + msg, 3000);
   }
 }
 
@@ -231,7 +276,7 @@ export async function backupToWebDav(showToast) {
     const tags = await db.value.select('SELECT * FROM tags');
     const todoTags = await db.value.select('SELECT * FROM todo_tags');
     const archives = await db.value.select('SELECT * FROM archives');
-    const settings = await db.value.select('SELECT * FROM settings WHERE id = 1');
+    const settingsRow = await getSettingsRow();
     
     const data = {
       version: '0.1.2',
@@ -240,7 +285,7 @@ export async function backupToWebDav(showToast) {
       tags,
       todoTags,
       archives,
-      settings: settings.length > 0 ? settings[0] : null,
+      settings: settingsRow,
     };
     
     syncStatus.value = t('dataSync.status.uploading');

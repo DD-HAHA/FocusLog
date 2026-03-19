@@ -1,7 +1,10 @@
 <template>
   <div class="modal-overlay" @click.self="isDailyPromptOpen = false">
     <div class="modal modal--lg">
-      <h2 class="modal__title"><Sparkles :size="18" color="var(--orange-400)" /><span>AI 日志提示词</span></h2>
+      <header class="modal__header">
+        <h2 class="modal__title"><Sparkles :size="18" color="var(--orange-400)" /><span>AI 日志提示词</span></h2>
+        <button type="button" class="modal__close" @click="isDailyPromptOpen = false" aria-label="关闭">&times;</button>
+      </header>
       <p class="modal__desc">选择职位角色快速填充预设提示词，或自定义生成「今日总结」时的系统提示词。<br>支持占位符：<code style="color:var(--purple-400)">{date}</code>, <code style="color:var(--purple-400)">{completedCount}</code>, <code style="color:var(--purple-400)">{todosText}</code></p>
       
       <!-- 角色选择 -->
@@ -24,7 +27,6 @@
       <textarea v-model="customDailyPromptInput" placeholder="留空以使用预设提示词..." class="form-textarea"></textarea>
       <div class="modal__footer">
         <button @click="resetToDefault" class="btn-text">重置默认</button>
-        <button @click="isDailyPromptOpen = false" class="btn-text">取消</button>
         <button @click="saveDailyPrompt(showToast)" class="btn-purple">保存</button>
       </div>
     </div>
@@ -100,5 +102,6 @@ watch(isDailyPromptOpen, (isOpen) => {
 }
 .preset-chip__label {
   font-weight: 500;
+  color: var(--text-400);
 }
 </style>
