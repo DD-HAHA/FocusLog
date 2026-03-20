@@ -3,6 +3,10 @@ import { ref, computed } from 'vue';
 import { db } from './useDb.js';
 import { tags } from './useTags.js';
 import { localNow, getTodayDate, pad } from './useDateHelpers.js';
+import { sendNotification } from './useDataSync.js';
+import i18n from '../locales/index.js';
+
+const t = i18n.global.t.bind(i18n.global);
 
 export const todos = ref([]);
 export const todoTagsByTodoId = ref({});
@@ -217,13 +221,54 @@ export async function addTodo(text, selectedIds, createTagPopoverOpen) {
   }
 }
 
-export async function deleteTodo(id) {
+// ── Delete with undo support ──────────────────────────────────
+let deleteUndoTimer = null;
+let deletedTodoCache = null;
+
+export async function deleteTodo(id, showToast, undoText = '撤销') {
   if (!db.value) return;
   try {
+    // Cache for undo
+    deletedTodoCache = todos.value.find(t => t.id === id);
+    if (!deletedTodoCache) return;
+
     await db.value.execute('DELETE FROM todos WHERE id = ?', [id]);
     todos.value = todos.value.filter(t => t.id !== id);
+
+    // Show undo toast
+    if (showToast) {
+      const deletedTodo = { ...deletedTodoCache };
+      clearTimeout(deleteUndoTimer);
+      showToast('已删除', 5000, undoText, async () => {
+        await restoreDeletedTodo(deletedTodo);
+      });
+      deleteUndoTimer = setTimeout(() => { deletedTodoCache = null; }, 5000);
+    }
   } catch (e) {
     console.error('deleteTodo failed:', e);
+  }
+}
+
+async function restoreDeletedTodo(todo) {
+  if (!db.value || !todo) return;
+  try {
+    const result = await db.value.execute(
+      'INSERT INTO todos (text, completed, from_yesterday, created_at, updated_at, tag_id, rolled_count, target_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [todo.text, todo.completed ? 1 : 0, todo.from_yesterday ? 1 : 0, todo.created_at, todo.updated_at, todo.tag_id, todo.rolled_count, todo.target_date]
+    );
+    const newId = result.lastInsertId;
+    // Restore tags
+    const tagIds = todoTagsByTodoId.value[todo.id] || [];
+    for (const tagId of tagIds) {
+      await db.value.execute('INSERT INTO todo_tags (todo_id, tag_id) VALUES (?, ?)', [newId, tagId]);
+    }
+    if (tagIds.length > 0) {
+      todoTagsByTodoId.value = { ...todoTagsByTodoId.value, [newId]: tagIds };
+    }
+    todos.value.unshift({ ...todo, id: newId });
+    deletedTodoCache = null;
+  } catch (e) {
+    console.error('restoreDeletedTodo failed:', e);
   }
 }
 
@@ -240,9 +285,6 @@ export async function toggleTodo(todo) {
     todo.updated_at = ts;
     
     if (newCompleted) {
-      const { sendNotification } = await import('./useDataSync.js');
-      const { default: i18n } = await import('../locales/index.js');
-      const t = i18n.global.t.bind(i18n.global);
       sendNotification(t('notification.taskCompleted'), `"${todo.text}" ` + t('todo.completed'));
     }
   } catch (e) {

@@ -32,27 +32,56 @@ reviewStartDate.value = getDateNDaysAgo(6);
 reviewEndDate.value = getTodayDate();
 
 // ── AI call helper ────────────────────────────────────────────
+function getFriendlyError(status, errText) {
+  const errorMap = {
+    400: '请求格式有误，请检查设置中的 API 配置',
+    401: 'API Key 无效或已过期，请前往设置重新配置',
+    403: '没有权限访问该模型，请检查 API Key 权限',
+    404: 'API 地址有误，请检查设置中的 API Base URL',
+    429: '请求过于频繁，请稍等片刻再试',
+    500: 'AI 服务暂时出错，请稍后再试',
+    502: 'AI 服务暂时不可用，请稍后再试',
+    503: 'AI 服务正在维护，请稍后再试',
+  };
+  if (errorMap[status]) return errorMap[status];
+  if (status >= 500) return 'AI 服务暂时不可用，请稍后再试';
+  if (status >= 400) return `请求出错 (${status})，请检查设置`;
+  return `生成失败：${errText}`;
+}
+
 async function callAI(systemPrompt, userPrompt) {
-  const response = await tauriFetch(`${apiBaseUrl.value}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey.value}`,
-    },
-    body: JSON.stringify({
-      model: apiModel.value,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`API 请求失败 (${response.status}): ${errText}`);
+  let response;
+  try {
+    response = await tauriFetch(`${apiBaseUrl.value}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey.value}`,
+      },
+      body: JSON.stringify({
+        model: apiModel.value,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+      }),
+    });
+  } catch (e) {
+    throw new Error('网络连接失败，请检查网络后重试');
   }
+
+  if (!response.ok) {
+    let errText = '';
+    try { errText = await response.text(); } catch (_) {}
+    throw new Error(getFriendlyError(response.status, errText));
+  }
+
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  const content = data.choices?.[0]?.message?.content || '';
+  if (!content) {
+    throw new Error('AI 返回内容为空，请重试');
+  }
+  return content;
 }
 
 // ── Daily summary ─────────────────────────────────────────────

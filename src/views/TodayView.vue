@@ -155,7 +155,7 @@
             </div>
           </div>
           <button class="todo-action-btn todo-action-btn--edit"   @click.stop="startEdit(todo)" title="编辑"><Pencil :size="15" /></button>
-          <button class="todo-action-btn todo-action-btn--delete" @click.stop="deleteTodo(todo.id)" title="删除"><Trash2 :size="15" /></button>
+          <button class="todo-action-btn todo-action-btn--delete" @click.stop="handleDelete(todo.id)" title="删除"><Trash2 :size="15" /></button>
         </div>
       </div>
 
@@ -179,7 +179,7 @@
             </div>
           </div>
         </div>
-        <button class="todo-action-btn todo-action-btn--delete" style="opacity:0;" @click.stop="deleteTodo(todo.id)"><Trash2 :size="15" /></button>
+        <button class="todo-action-btn todo-action-btn--delete" style="opacity:0;" @click.stop="handleDelete(todo.id)"><Trash2 :size="15" /></button>
       </div>
     </div>
   </div>
@@ -204,6 +204,9 @@ import { useI18n } from '../composables/useI18n.js';
 
 const { t } = useI18n();
 
+const props = defineProps({
+  showToast: { type: Function, default: null }
+});
 const emit = defineEmits(['openTagManager']);
 const newTodoText = ref('');
 const createTagPopoverOpen = ref(false);
@@ -211,6 +214,10 @@ const newTodoInput = ref(null);
 const snoozeMsg = ref('');
 const snoozeVisible = ref(false);
 const mentionState = ref({ visible: false, query: '', startIndex: -1, selectedIndex: 0 });
+
+function handleDelete(id) {
+  deleteTodo(id, props.showToast);
+}
 
 const filteredMentionTags = computed(() => {
   if (!mentionState.value.query) return tags.value;

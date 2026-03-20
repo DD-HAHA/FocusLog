@@ -23,7 +23,7 @@
               <span v-for="tag in getTagsForTodo(todo)" :key="tag.id" class="tag-badge" :style="{ borderColor: tag.color, color: tag.color }">{{ tag.name }}</span>
             </div>
           </div>
-          <button class="todo-action-btn todo-action-btn--delete" @click.stop="deleteTodo(todo.id)"><Trash2 :size="15" /></button>
+          <button class="todo-action-btn todo-action-btn--delete" @click.stop="handleDelete(todo.id)"><Trash2 :size="15" /></button>
         </div>
       </div>
     </div>
@@ -32,4 +32,12 @@
 <script setup>
 import { Trash2, CalendarClock } from 'lucide-vue-next';
 import { upcomingGroups, deleteTodo, moveToToday, getTagsForTodo } from '../composables/useTodos.js';
+
+const props = defineProps({
+  showToast: { type: Function, default: null }
+});
+
+function handleDelete(id) {
+  deleteTodo(id, props.showToast);
+}
 </script>

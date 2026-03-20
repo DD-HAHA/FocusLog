@@ -15,11 +15,11 @@
         </button>
       </div>
 
-      <TodayView    v-show="currentView === 'today'"    ref="todayViewRef" @openTagManager="openTagManager" />
-      <UpcomingView v-show="currentView === 'upcoming'" />
+      <TodayView v-show="currentView === 'today'" ref="todayViewRef" :showToast="showToast" @openTagManager="openTagManager" />
+      <UpcomingView v-show="currentView === 'upcoming'" :showToast="showToast" />
       <HistoryView  v-show="currentView === 'history'" />
       <ReviewView   v-show="currentView === 'review'"  @saveReview="handleSaveReview" />
-      <ArchiveView  v-show="currentView === 'archive'" />
+      <ArchiveView v-show="currentView === 'archive'" :showToast="showToast" />
       <SettingsView v-show="currentView === 'settings'" />
 
       <button v-if="currentView === 'today'" @click="generateSummary" class="btn-fab">
@@ -27,7 +27,12 @@
         <span>{{ t('summary.generate') }}</span>
       </button>
 
-      <div v-if="archiveToastVisible" class="toast">{{ archiveToastMessage }}</div>
+      <transition name="fade-slide">
+        <div v-if="archiveToastVisible" class="toast" :class="{ 'toast--with-action': toastAction }">
+          <span>{{ archiveToastMessage }}</span>
+          <button v-if="toastAction" @click="handleToastAction" class="toast__action">{{ toastActionText }}</button>
+        </div>
+      </transition>
 
       <transition name="fade-slide">
         <div v-if="snoozeToastVisible" class="toast--snooze">
@@ -47,6 +52,7 @@
     <WebDavSettingsModal v-if="isWebDavSettingsOpen" :showToast="showToast" />
     <AutoBackupSettingsModal v-if="isAutoBackupSettingsOpen" :showToast="showToast" />
     <ThemeSettingsModal v-if="isThemeSettingsOpen" :showToast="showToast" />
+    <WelcomeGuide :dbReady="dbReady" />
   </div>
 </template>
 
@@ -64,6 +70,7 @@ import DataSyncModal     from './components/modals/DataSyncModal.vue';
 import WebDavSettingsModal from './components/modals/WebDavSettingsModal.vue';
 import AutoBackupSettingsModal from './components/modals/AutoBackupSettingsModal.vue';
 import ThemeSettingsModal from './components/modals/ThemeSettingsModal.vue';
+import WelcomeGuide from './components/WelcomeGuide.vue';
 import TodayView    from './views/TodayView.vue';
 import UpcomingView from './views/UpcomingView.vue';
 import HistoryView  from './views/HistoryView.vue';
@@ -79,6 +86,8 @@ import { loadSettings, isApiSettingsOpen, isDailyPromptOpen, isReviewPromptOpen 
 import { isDemoDataModalOpen } from './composables/useDemoData.js';
 import { isSummaryOpen, summaryContent, generateSummary, reviewContent, reviewStartDate, reviewFileName } from './composables/useAI.js';
 import { isDataSyncModalOpen, isWebDavSettingsOpen, isAutoBackupSettingsOpen, isThemeSettingsOpen } from './composables/useDataSync.js';
+import { loadAutoBackupSettings, startAutoBackup } from './composables/useAutoBackup.js';
+import { loadThemeSettings } from './composables/useThemeSettings.js';
 import { useI18n } from './composables/useI18n.js';
 import { isDark, toggleTheme } from './composables/useTheme.js';
 
@@ -94,13 +103,30 @@ const initError = ref('');
 const todayViewRef = ref(null);
 const archiveToastVisible = ref(false);
 const archiveToastMessage = ref('');
+const toastAction = ref(null);
+const toastActionText = ref('');
 const snoozeToastVisible = ref(false);
 const snoozeToastMessage = ref('');
+let toastTimer = null;
 
-function showToast(msg, duration = 2000) {
+function showToast(msg, duration = 2000, actionText = '', actionFn = null) {
+  clearTimeout(toastTimer);
   archiveToastMessage.value = msg;
   archiveToastVisible.value = true;
-  setTimeout(() => { archiveToastVisible.value = false; }, duration);
+  toastAction.value = actionFn;
+  toastActionText.value = actionText;
+  toastTimer = setTimeout(() => {
+    archiveToastVisible.value = false;
+    toastAction.value = null;
+  }, duration);
+}
+
+async function handleToastAction() {
+  if (toastAction.value) {
+    await toastAction.value();
+    archiveToastVisible.value = false;
+    toastAction.value = null;
+  }
 }
 
 async function initDB() {
@@ -150,11 +176,9 @@ async function initDB() {
     await loadTags();
     await loadHeatmap(activeTagFilterId.value ?? null);
     
-    const { loadAutoBackupSettings, startAutoBackup } = await import('./composables/useAutoBackup.js');
     await loadAutoBackupSettings();
     startAutoBackup();
     
-    const { loadThemeSettings } = await import('./composables/useThemeSettings.js');
     await loadThemeSettings();
   } catch (e) {
     console.error('initDB failed:', e);

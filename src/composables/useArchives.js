@@ -59,8 +59,37 @@ export async function saveReviewReport(reviewContent, reviewStartDate, reviewFil
   }
 }
 
-export async function deleteArchive(id) {
+export async function deleteArchive(id, showToast) {
   if (!db.value) return;
-  await db.value.execute('DELETE FROM archives WHERE id = ?', [id]);
-  archives.value = archives.value.filter(a => a.id !== id);
+  try {
+    // Cache for undo
+    const deletedArchive = archives.value.find(a => a.id === id);
+    if (!deletedArchive) return;
+
+    await db.value.execute('DELETE FROM archives WHERE id = ?', [id]);
+    archives.value = archives.value.filter(a => a.id !== id);
+
+    // Show undo toast
+    if (showToast) {
+      const archive = { ...deletedArchive };
+      showToast('已删除', 5000, '撤销', async () => {
+        await restoreDeletedArchive(archive);
+      });
+    }
+  } catch (e) {
+    console.error('deleteArchive failed:', e);
+  }
+}
+
+async function restoreDeletedArchive(archive) {
+  if (!db.value || !archive) return;
+  try {
+    const result = await db.value.execute(
+      'INSERT INTO archives (date, content, created_at) VALUES (?, ?, ?)',
+      [archive.date, archive.content, archive.created_at]
+    );
+    archives.value.unshift({ ...archive, id: result.lastInsertId });
+  } catch (e) {
+    console.error('restoreDeletedArchive failed:', e);
+  }
 }

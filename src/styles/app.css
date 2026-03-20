@@ -1843,6 +1843,29 @@ html.light .icon-btn:hover {
   backdrop-filter: blur(8px);
   z-index: 80;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast--with-action {
+  padding: 8px 8px 8px 16px;
+}
+
+.toast__action {
+  background: var(--purple-500);
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: var(--r-full);
+  font-size: .75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.toast__action:hover {
+  background: var(--purple-400);
 }
 
 .toast--snooze {

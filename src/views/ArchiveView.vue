@@ -11,7 +11,7 @@
     <div v-for="arc in archives" :key="arc.id" class="archive-item">
       <div class="archive-item__header">
         <span class="archive-item__date">{{ arc.date }}</span>
-        <button @click="deleteArchive(arc.id)" class="todo-action-btn todo-action-btn--delete"><Trash2 :size="14" /></button>
+        <button @click="handleDelete(arc.id)" class="todo-action-btn todo-action-btn--delete"><Trash2 :size="14" /></button>
       </div>
       <div class="archive-item__content">{{ arc.content }}</div>
     </div>
@@ -20,4 +20,12 @@
 <script setup>
 import { Sparkles, Trash2 } from 'lucide-vue-next';
 import { archives, deleteArchive } from '../composables/useArchives.js';
+
+const props = defineProps({
+  showToast: { type: Function, default: null }
+});
+
+function handleDelete(id) {
+  deleteArchive(id, props.showToast);
+}
 </script>
